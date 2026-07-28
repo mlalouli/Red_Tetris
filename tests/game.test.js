@@ -1,0 +1,7 @@
+const { Game, Piece, Player } = require('../src/server/game');
+
+test('creates Player and Piece classes required by the server model', () => { expect(new Player('id', 'Ada').name).toBe('Ada'); expect(new Piece(4).index).toBe(4); });
+test('assigns the first player as host and reassigns it on leave', () => { const game = new Game('room'); game.join('a', 'Ada'); game.join('b', 'Ben'); expect(game.host).toBe('a'); game.leave('a'); expect(game.host).toBe('b'); });
+test('does not allow joining a started game and only lets the host start it', () => { const game = new Game('room'); game.join('a', 'Ada'); expect(game.start('other')).toBe(false); expect(game.start('a')).toBe(true); expect(game.join('b', 'Ben')).toBeNull(); });
+test('gives every player the same ordered piece sequence', () => { const game = new Game('room'); game.join('a', 'Ada'); game.join('b', 'Ben'); game.start('a'); const first = [game.nextPiece('a').index, game.nextPiece('a').index, game.nextPiece('a').index]; const second = [game.nextPiece('b').index, game.nextPiece('b').index, game.nextPiece('b').index]; expect(second).toEqual(first); });
+test('sanitizes spectrum input and ends a round with one survivor', () => { const game = new Game('room'); game.join('a', 'Ada'); game.join('b', 'Ben'); game.start('a'); game.update('a', [99, -2, '4', 0, 0, 0, 0, 0, 0, 0]); expect(game.snapshot().players[0].spectrum.slice(0, 3)).toEqual([20, 0, 4]); const survivors = game.eliminate('a'); expect(survivors).toHaveLength(1); expect(game.finished).toBe(true); expect(game.winner).toBe('b'); });
