@@ -2,13 +2,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client';
 import { io } from 'socket.io-client';
 import { clearLines, collides, emptyBoard, hardDrop, lock, move, penalty, rotatePiece, spawn, spectrum } from '../shared/tetris';
+import { routeFromPath } from './route';
 import './styles.css';
 
-const routeFromUrl = () => {
-  const parts = window.location.pathname.split('/').filter(Boolean);
-  if (!parts.length || parts[0] === 'solo') return { solo: true, room: 'solo', name: 'Solo player' };
-  return { solo: false, room: decodeURIComponent(parts[0]), name: decodeURIComponent(parts[1] || 'player') };
-};
 const Board = ({ board, piece }) => {
   const cells = useMemo(() => board.flatMap((row, y) => row.map((filled, x) => filled || Boolean(piece?.shape[y - piece.y]?.[x - piece.x]))), [board, piece]);
   return <div className="board" aria-label="Tetris board">{cells.map((filled, index) => <span className={filled ? 'cell cell--filled' : 'cell'} key={index} />)}</div>;
@@ -16,7 +12,7 @@ const Board = ({ board, piece }) => {
 const Opponents = ({ players, selfId }) => <aside className="opponents"><h2>Players</h2>{players.map(player => <div className="opponent" key={player.id}><div><strong>{player.name}{player.id === selfId ? ' (you)' : ''}</strong><small>{player.alive ? 'active' : 'out'}</small></div><div className="spectrum" title="Column heights">{player.spectrum.map((height, index) => <i style={{ height: `${Math.max(4, height * 5)}px` }} key={index} />)}</div></div>)}</aside>;
 
 function App() {
-  const route = useMemo(routeFromUrl, []);
+  const route = useMemo(() => routeFromPath(window.location.pathname), []);
   const socket = useRef(null); const boardRef = useRef(emptyBoard()); const pieceRef = useRef(null); const gameRef = useRef({ started: false }); const cursorRef = useRef(0); const groundedRef = useRef(false); const lostRef = useRef(false);
   const [board, setBoard] = useState(boardRef.current); const [piece, setPiece] = useState(null); const [game, setGame] = useState({ started: false, finished: false, players: route.solo ? [{ id: 'solo', name: route.name, alive: true, spectrum: Array(10).fill(0) }] : [] }); const [notice, setNotice] = useState(route.solo ? 'Solo practice mode.' : 'Connecting...');
   const setGameState = useCallback(next => { gameRef.current = typeof next === 'function' ? next(gameRef.current) : next; setGame(gameRef.current); }, []);
